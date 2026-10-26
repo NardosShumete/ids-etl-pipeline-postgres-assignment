@@ -1,6 +1,7 @@
 """Unit tests verifying DDL schema definitions, constraints, and index scripts."""
 
 from pathlib import Path
+
 import pytest
 
 
@@ -50,7 +51,9 @@ def test_attack_types_seeded(project_root: Path) -> None:
     ]
 
     for label in expected_labels:
-        assert label in content, f"Expected attack label '{label}' not found in seed SQL"
+        assert label in content, (
+            f"Expected attack label '{label}' not found in seed SQL"
+        )
 
 
 def test_indexes_file_exists(project_root: Path) -> None:

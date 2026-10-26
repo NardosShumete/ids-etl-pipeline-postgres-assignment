@@ -18,7 +18,7 @@ import argparse
 import sys
 import time
 from pathlib import Path
-from typing import Optional
+
 import psycopg2
 from tqdm import tqdm
 
@@ -40,7 +40,7 @@ logger = setup_logger("pipeline")
 
 
 def run_pipeline(
-    limit: Optional[int] = None,
+    limit: int | None = None,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     truncate: bool = False,
     skip_indexes: bool = False,
@@ -61,7 +61,13 @@ def run_pipeline(
     start_time = time.time()
     logger.info("=" * 70)
     logger.info("STARTING IDS ETL PIPELINE (CIC-IDS-2017)")
-    logger.info("Parameters: limit=%s, chunk_size=%d, truncate=%s, skip_indexes=%s", limit, chunk_size, truncate, skip_indexes)
+    logger.info(
+        "Parameters: limit=%s, chunk_size=%d, truncate=%s, skip_indexes=%s",
+        limit,
+        chunk_size,
+        truncate,
+        skip_indexes,
+    )
     logger.info("=" * 70)
 
     # 1. Ensure raw CSV files are extracted
@@ -91,7 +97,9 @@ def run_pipeline(
         # 5. Process each CSV file
         for file_idx, csv_file in enumerate(csv_files, 1):
             if limit is not None and total_processed_globally >= limit:
-                logger.info("Reached global limit of %d rows. Stopping file ingestion.", limit)
+                logger.info(
+                    "Reached global limit of %d rows. Stopping file ingestion.", limit
+                )
                 break
 
             logger.info(
@@ -104,7 +112,10 @@ def run_pipeline(
 
             # Check if file was already loaded
             if not truncate and is_file_already_loaded(conn, csv_file.name):
-                logger.info("File '%s' already has loaded rows. Skipping (use --truncate to reload).", csv_file.name)
+                logger.info(
+                    "File '%s' already has loaded rows. Skipping (use --truncate to reload).",
+                    csv_file.name,
+                )
                 continue
 
             source_file_id = get_or_create_source_file_id(conn, csv_file.name)
@@ -226,7 +237,9 @@ def main() -> None:
             skip_indexes=args.skip_indexes,
         )
     except Exception as err:
-        logger.critical("Pipeline aborted due to unexpected error: %s", err, exc_info=True)
+        logger.critical(
+            "Pipeline aborted due to unexpected error: %s", err, exc_info=True
+        )
         sys.exit(1)
 
 

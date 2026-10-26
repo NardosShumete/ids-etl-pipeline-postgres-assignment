@@ -7,12 +7,13 @@ at `logs/etl.log`.
 import logging
 import sys
 from pathlib import Path
+
 from src.config import LOGS_DIR
 
 
 def setup_logger(
     name: str = "etl_pipeline",
-    log_file: Path = None,
+    log_file: Path | None = None,
     level: int = logging.INFO,
 ) -> logging.Logger:
     """Configure and return a logger with console and file handlers.
@@ -54,7 +55,7 @@ def setup_logger(
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
-    except Exception as err:
+    except OSError as err:
         logger.warning("Could not initialize file logging to %s: %s", log_file, err)
 
     return logger

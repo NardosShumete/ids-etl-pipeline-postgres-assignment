@@ -23,8 +23,8 @@ logger = logging.getLogger("create_database")
 
 # Attempt importing third-party dependencies with helpful troubleshooting advice
 try:
-    from dotenv import load_dotenv
     import psycopg2
+    from dotenv import load_dotenv
     from psycopg2 import sql
     from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 except ImportError as err:
@@ -75,7 +75,12 @@ def load_db_config() -> dict:
 def create_database_if_not_exists(config: dict) -> None:
     """Connect to default 'postgres' database and create target database if needed."""
     db_name = config["name"]
-    logger.info("Verifying existence of database '%s' on %s:%s...", db_name, config["host"], config["port"])
+    logger.info(
+        "Verifying existence of database '%s' on %s:%s...",
+        db_name,
+        config["host"],
+        config["port"],
+    )
 
     try:
         # Connect to maintenance database 'postgres' to check / create DB
@@ -170,7 +175,7 @@ def main() -> None:
             "Database setup complete! Target '%s' is ready for ETL operations.",
             config["name"],
         )
-    except Exception as err:
+    except (psycopg2.Error, OSError) as err:
         logger.critical("Database setup aborted due to error: %s", err)
         sys.exit(1)
 

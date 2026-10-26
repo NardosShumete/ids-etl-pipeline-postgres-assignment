@@ -192,8 +192,41 @@ pytest tests/ -v
 
 ---
 
-## 6. Next Steps (Upcoming ETL Pipeline Implementation)
-- **Data Ingestion Module:** Developing `src/extract.py` and `src/transform.py` to parse CSV chunks, clean NaN/infinite values, map column names to database identifiers, and handle whitespace quirks.
-- **Bulk Loading Engine:** Implementing high-performance `COPY` streaming via `psycopg2` in `src/load.py`.
-- **Post-Load Indexing:** Automatically executing `sql/02_indexes.sql` once all ~2.83M records are ingested.
-- **Analytical Reporting:** Authoring SQL queries and dashboard metrics for SOC threat intelligence reports.
+## 6. Verification and Analytics
+
+### Step 6: Verify Database Ingestion & Integrity
+Execute the automated database audit script to verify row counts, 1:1 vertical partition alignment, referential integrity, and absence of NULL values:
+
+```bash
+python src/verify.py
+# or
+python -m src.verify
+```
+
+This script executes queries from `sql/03_verification.sql` and displays:
+1. Total row count across `flows` and `flow_statistics` (verifying > 2,000,000 records).
+2. Per-file audit lineage and reconciliation against raw CSV line counts.
+3. Distribution and percentage shares across all 15 attack classes.
+4. Orphan foreign key validation.
+5. NULL-value absence check across all critical telemetry columns.
+
+### Step 7: Run Business Analytics Queries
+Execute `sql/04_analytics.sql` using `psql` or any PostgreSQL client (DBeaver, pgAdmin):
+
+```bash
+psql -U postgres -d ids_flows_db -f sql/04_analytics.sql
+```
+
+Key analytical queries included:
+- **Query 1:** Malicious vs. Benign traffic volume and byte shares.
+- **Query 2:** Top 10 targeted destination ports under active attack.
+- **Query 3:** Behavioral telemetry (flow durations, packet rates, byte transfer) by attack class.
+- **Query 4:** Temporal threat intensity (identifying which weekday experienced peak attacks).
+- **Queries 5 & 6:** `EXPLAIN ANALYZE` demonstrations illustrating B-Tree index acceleration.
+
+### Step 8: View Academic & Engineering Report
+Detailed architecture diagrams, normalization analysis, and operational findings are documented in:
+- Markdown Report: [docs/report.md](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/report.md)
+- Word Document: [docs/report.docx](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/report.docx)
+- Schema Notes: [docs/schema_notes.md](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/schema_notes.md)
+- ER Diagram: [docs/er_diagram.mmd](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/er_diagram.mmd)

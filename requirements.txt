@@ -1,5 +1,6 @@
 # Core Data Manipulation and ETL
 pandas>=2.1.0
+numpy>=1.26.0
 
 # Database Engine and PostgreSQL Driver
 sqlalchemy>=2.0.0
@@ -13,3 +14,9 @@ tqdm>=4.66.0
 
 # Automated Testing Framework
 pytest>=8.0.0
+
+# Documentation & Report Generation
+python-docx>=1.1.0
+
+# Code Quality and Linting
+ruff>=0.1.0

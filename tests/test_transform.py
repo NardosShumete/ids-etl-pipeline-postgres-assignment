@@ -1,14 +1,11 @@
 """Unit and integration tests for data transformation and cleaning logic."""
 
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
 
 from src.config import RAW_DATA_DIR
 from src.transform import (
-    FLOWS_COLUMNS,
-    FLOW_STATS_COLUMNS,
     TransformStats,
     clean_attack_label,
     clean_column_name,
@@ -51,9 +48,14 @@ def test_clean_column_name():
 def test_clean_attack_label():
     """Verify normalization of non-standard dash characters and typos in labels."""
     assert clean_attack_label("BENIGN") == "BENIGN"
-    assert clean_attack_label("Web Attack \ufffd Brute Force") == "Web Attack - Brute Force"
+    assert (
+        clean_attack_label("Web Attack \ufffd Brute Force")
+        == "Web Attack - Brute Force"
+    )
     assert clean_attack_label("Web Attack \x96 XSS") == "Web Attack - XSS"
-    assert clean_attack_label("Web Attack  Sql Injection") == "Web Attack - Sql Injection"
+    assert (
+        clean_attack_label("Web Attack  Sql Injection") == "Web Attack - Sql Injection"
+    )
     assert clean_attack_label("Infilteration") == "Infiltration"
     assert clean_attack_label("DoS Hulk") == "DoS Hulk"
 
@@ -62,7 +64,13 @@ def test_transform_chunk_synthetic(mock_label_to_id):
     """Test cleaning rules on synthetic records with known defects."""
     raw_data = {
         " Destination Port": [80, 443, -1, 8080, 80],
-        " Flow Duration": [1000, 2000, 3000, -50, 1000],  # row 3 has negative duration, row 4 duplicate of row 0
+        " Flow Duration": [
+            1000,
+            2000,
+            3000,
+            -50,
+            1000,
+        ],  # row 3 has negative duration, row 4 duplicate of row 0
         " Total Fwd Packets": [10, 20, 10, 5, 10],
         " Total Backward Packets": [5, 10, 5, 2, 5],
         "Total Length of Fwd Packets": [100, 200, 100, 50, 100],
@@ -113,7 +121,12 @@ def test_transform_chunk_on_real_1000_sample(mock_label_to_id):
     assert len(flows_df) == len(flow_stats_df)
 
     # Verify column structures
-    for col in ["destination_port", "flow_duration", "total_fwd_packets", "attack_type_id"]:
+    for col in [
+        "destination_port",
+        "flow_duration",
+        "total_fwd_packets",
+        "attack_type_id",
+    ]:
         assert col in flows_df.columns
 
     # Verify domain boundaries on output

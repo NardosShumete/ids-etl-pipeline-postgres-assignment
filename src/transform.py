@@ -10,7 +10,7 @@ Cleans and standardizes raw CIC-IDS-2017 network flow chunks:
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
 
@@ -19,7 +19,7 @@ from src.logger import setup_logger
 logger = setup_logger("transform")
 
 # Mapping from sanitized raw column names to canonical PostgreSQL column names
-RAW_TO_DB_MAP: Dict[str, str] = {
+RAW_TO_DB_MAP: dict[str, str] = {
     "total_backward_packets": "total_bwd_packets",
     "fwd_avg_bytes_per_bulk": "fwd_avg_bytes_bulk",
     "fwd_avg_packets_per_bulk": "fwd_avg_packets_bulk",
@@ -31,7 +31,7 @@ RAW_TO_DB_MAP: Dict[str, str] = {
 }
 
 # Core columns belonging to the `flows` table
-FLOWS_COLUMNS: List[str] = [
+FLOWS_COLUMNS: list[str] = [
     "destination_port",
     "flow_duration",
     "total_fwd_packets",
@@ -57,7 +57,7 @@ FLOWS_COLUMNS: List[str] = [
 ]
 
 # Statistical columns belonging to the `flow_statistics` table
-FLOW_STATS_COLUMNS: List[str] = [
+FLOW_STATS_COLUMNS: list[str] = [
     "fwd_packet_length_max",
     "fwd_packet_length_min",
     "fwd_packet_length_mean",
@@ -147,7 +147,9 @@ def clean_attack_label(label: str) -> str:
 
     # Normalize Web Attack hyphenation variations (including replacement char \ufffd, en-dash \x96)
     if "web attack" in label.lower():
-        label = re.sub(r"Web Attack[\s\uFFFD\u0096\u2013\u2014\-]+", "Web Attack - ", label)
+        label = re.sub(
+            r"Web Attack[\s\uFFFD\u0096\u2013\u2014\-]+", "Web Attack - ", label
+        )
         # Normalize specific sub-labels
         if "brute" in label.lower():
             return "Web Attack - Brute Force"
@@ -176,14 +178,18 @@ class TransformStats:
         self.rows_loaded: int = 0
 
     def total_dropped(self) -> int:
-        return self.rows_dropped_duplicates + self.rows_dropped_nan + self.rows_dropped_invalid
+        return (
+            self.rows_dropped_duplicates
+            + self.rows_dropped_nan
+            + self.rows_dropped_invalid
+        )
 
 
 def transform_chunk(
     df: pd.DataFrame,
-    label_to_id: Dict[str, int],
-    stats: Optional[TransformStats] = None,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    label_to_id: dict[str, int],
+    stats: TransformStats | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Clean and transform a single DataFrame chunk.
 
     Args:
@@ -212,7 +218,13 @@ def transform_chunk(
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
     # 4. Handle NaN: Drop rows missing crucial connection metrics
-    crucial_cols = ["destination_port", "flow_duration", "flow_bytes_per_s", "flow_packets_per_s", "label"]
+    crucial_cols = [
+        "destination_port",
+        "flow_duration",
+        "flow_bytes_per_s",
+        "flow_packets_per_s",
+        "label",
+    ]
     crucial_existing = [c for c in crucial_cols if c in df.columns]
     nan_mask = df[crucial_existing].isna().any(axis=1)
     nan_count = int(nan_mask.sum())
@@ -257,8 +269,12 @@ def transform_chunk(
 
     # Clip minor microsecond timing jitter (e.g. -12 microseconds) to 0 for non-negative check constraints
     non_neg_stat_cols = [
-        "fwd_iat_min", "bwd_iat_min", "flow_iat_min",
-        "packet_length_variance", "active_min", "idle_min"
+        "fwd_iat_min",
+        "bwd_iat_min",
+        "flow_iat_min",
+        "packet_length_variance",
+        "active_min",
+        "idle_min",
     ]
     for col in non_neg_stat_cols:
         if col in df.columns:
@@ -266,7 +282,13 @@ def transform_chunk(
 
     # 8. Downcast numeric data types to match PostgreSQL schema
     int_cols_32 = ["destination_port"]
-    int_cols_64 = ["flow_duration", "total_fwd_packets", "total_bwd_packets", "total_length_of_fwd_packets", "total_length_of_bwd_packets"]
+    int_cols_64 = [
+        "flow_duration",
+        "total_fwd_packets",
+        "total_bwd_packets",
+        "total_length_of_fwd_packets",
+        "total_length_of_bwd_packets",
+    ]
     flag_cols = [c for c in df.columns if "flag" in c]
 
     for col in int_cols_32:

@@ -7,7 +7,7 @@ and post-load index maintenance.
 
 import io
 from pathlib import Path
-from typing import Dict, Optional
+
 import pandas as pd
 import psycopg2
 from psycopg2.extensions import connection as PgConnection
@@ -18,7 +18,7 @@ from src.logger import setup_logger
 logger = setup_logger("load")
 
 
-def get_attack_types_cache(conn: PgConnection) -> Dict[str, int]:
+def get_attack_types_cache(conn: PgConnection) -> dict[str, int]:
     """Fetch current attack_types taxonomy from PostgreSQL as a label->id mapping."""
     with conn.cursor() as cur:
         cur.execute("SELECT label, id FROM attack_types;")
@@ -58,14 +58,21 @@ def get_or_create_source_file_id(conn: PgConnection, file_name: str) -> int:
         )
         file_id = cur.fetchone()[0]
     conn.commit()
-    logger.info("Registered source file '%s' (Day: %s) with id=%d", file_name, capture_day, file_id)
+    logger.info(
+        "Registered source file '%s' (Day: %s) with id=%d",
+        file_name,
+        capture_day,
+        file_id,
+    )
     return file_id
 
 
 def is_file_already_loaded(conn: PgConnection, file_name: str) -> bool:
     """Check if the source file has already been ingested with records."""
     with conn.cursor() as cur:
-        cur.execute("SELECT row_count FROM source_files WHERE file_name = %s;", (file_name,))
+        cur.execute(
+            "SELECT row_count FROM source_files WHERE file_name = %s;", (file_name,)
+        )
         row = cur.fetchone()
         if row and row[0] > 0:
             return True
@@ -76,7 +83,9 @@ def truncate_tables(conn: PgConnection) -> None:
     """Truncate data tables and reset primary key sequences for clean re-runs."""
     logger.info("Truncating flows, flow_statistics, and source_files tables...")
     with conn.cursor() as cur:
-        cur.execute("TRUNCATE flow_statistics, flows, source_files RESTART IDENTITY CASCADE;")
+        cur.execute(
+            "TRUNCATE flow_statistics, flows, source_files RESTART IDENTITY CASCADE;"
+        )
     conn.commit()
     logger.info("Tables truncated and sequences reset.")
 
@@ -163,7 +172,7 @@ def load_chunk_to_postgres(
         raise
 
 
-def apply_post_load_indexes(conn: PgConnection, index_file: Optional[Path] = None) -> None:
+def apply_post_load_indexes(conn: PgConnection, index_file: Path | None = None) -> None:
     """Execute SQL index creation script against database."""
     if index_file is None:
         index_file = SQL_DIR / "02_indexes.sql"

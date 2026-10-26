@@ -7,11 +7,17 @@ encoding fallbacks.
 
 import shutil
 import zipfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator, List, Optional
+
 import pandas as pd
 
-from src.config import DEFAULT_CHUNK_SIZE, DEFAULT_ZIP_PATH, FALLBACK_ENCODINGS, RAW_DATA_DIR
+from src.config import (
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_ZIP_PATH,
+    FALLBACK_ENCODINGS,
+    RAW_DATA_DIR,
+)
 from src.logger import setup_logger
 
 logger = setup_logger("extract")
@@ -20,7 +26,7 @@ logger = setup_logger("extract")
 def ensure_raw_data_extracted(
     zip_path: Path = DEFAULT_ZIP_PATH,
     target_dir: Path = RAW_DATA_DIR,
-) -> List[Path]:
+) -> list[Path]:
     """Ensure CSV files are extracted and available in target directory.
 
     If CSV files are already present in target_dir, extraction is skipped.
@@ -38,13 +44,21 @@ def ensure_raw_data_extracted(
     existing_csvs = list(target_dir.glob("*.csv"))
 
     if existing_csvs:
-        logger.info("Found %d existing CSV file(s) in %s. Skipping extraction.", len(existing_csvs), target_dir)
+        logger.info(
+            "Found %d existing CSV file(s) in %s. Skipping extraction.",
+            len(existing_csvs),
+            target_dir,
+        )
         return sorted(existing_csvs)
 
     # Check for nested CSVs in subdirectories of target_dir
     nested_csvs = list(target_dir.glob("*/**/*.csv"))
     if nested_csvs:
-        logger.info("Found %d nested CSV file(s). Flattening into %s...", len(nested_csvs), target_dir)
+        logger.info(
+            "Found %d nested CSV file(s). Flattening into %s...",
+            len(nested_csvs),
+            target_dir,
+        )
         for nested in nested_csvs:
             destination = target_dir / nested.name
             if nested != destination:
@@ -53,7 +67,7 @@ def ensure_raw_data_extracted(
         for item in target_dir.iterdir():
             if item.is_dir():
                 shutil.rmtree(item, ignore_errors=True)
-        return sorted(list(target_dir.glob("*.csv")))
+        return sorted(target_dir.glob("*.csv"))
 
     # Verify archive.zip exists
     if not zip_path.is_file():
@@ -74,7 +88,9 @@ def ensure_raw_data_extracted(
     # Flatten any subfolders created by extraction (e.g. MachineLearningCSV/)
     extracted_csvs = list(target_dir.rglob("*.csv"))
     if not extracted_csvs:
-        raise RuntimeError(f"Extraction completed but no .csv files found in {target_dir}")
+        raise RuntimeError(
+            f"Extraction completed but no .csv files found in {target_dir}"
+        )
 
     for csv_file in extracted_csvs:
         destination = target_dir / csv_file.name
@@ -86,20 +102,22 @@ def ensure_raw_data_extracted(
         if item.is_dir():
             shutil.rmtree(item, ignore_errors=True)
 
-    final_csvs = sorted(list(target_dir.glob("*.csv")))
-    logger.info("Extraction complete. %d CSV file(s) ready in %s.", len(final_csvs), target_dir)
+    final_csvs = sorted(target_dir.glob("*.csv"))
+    logger.info(
+        "Extraction complete. %d CSV file(s) ready in %s.", len(final_csvs), target_dir
+    )
     return final_csvs
 
 
-def get_raw_csv_files(raw_dir: Path = RAW_DATA_DIR) -> List[Path]:
+def get_raw_csv_files(raw_dir: Path = RAW_DATA_DIR) -> list[Path]:
     """Return all CSV file paths in the raw data directory."""
-    return sorted(list(raw_dir.glob("*.csv")))
+    return sorted(raw_dir.glob("*.csv"))
 
 
 def read_csv_chunks(
     file_path: Path,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
-    limit: Optional[int] = None,
+    limit: int | None = None,
 ) -> Generator[pd.DataFrame, None, None]:
     """Read a CSV file in chunks with encoding fallback and file lineage metadata.
 
@@ -121,7 +139,7 @@ def read_csv_chunks(
                 f.readline()
             selected_encoding = encoding
             break
-        except (UnicodeDecodeError, Exception):
+        except (UnicodeDecodeError, OSError):
             continue
 
     if not selected_encoding:
@@ -131,7 +149,12 @@ def read_csv_chunks(
             file_path.name,
         )
 
-    logger.debug("Reading %s using encoding '%s' (chunk_size=%d)...", file_path.name, selected_encoding, chunk_size)
+    logger.debug(
+        "Reading %s using encoding '%s' (chunk_size=%d)...",
+        file_path.name,
+        selected_encoding,
+        chunk_size,
+    )
 
     reader = pd.read_csv(
         file_path,

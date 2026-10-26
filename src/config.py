@@ -6,6 +6,7 @@ execution parameters (such as chunk sizes and encoding fallbacks).
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Base Project Paths
@@ -35,7 +36,9 @@ FALLBACK_ENCODINGS = ["utf-8", "latin-1"]
 
 def get_db_url() -> str:
     """Construct SQLAlchemy database connection URL."""
-    return f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    return (
+        f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    )
 
 
 def get_db_params() -> dict:
