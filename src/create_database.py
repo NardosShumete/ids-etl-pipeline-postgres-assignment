@@ -55,19 +55,36 @@ def load_db_config() -> dict:
             env_path,
         )
 
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+
+    if not user:
+        logger.critical(
+            "Missing required environment variable: DB_USER is not set or empty. "
+            "Please copy .env.example to .env and configure your PostgreSQL credentials."
+        )
+        raise ValueError(
+            "Missing required environment variable: DB_USER is not set or empty. "
+            "Please copy .env.example to .env and configure your PostgreSQL credentials."
+        )
+
+    if not password:
+        logger.critical(
+            "Missing required environment variable: DB_PASSWORD is not set or empty. "
+            "Please copy .env.example to .env and configure your PostgreSQL credentials."
+        )
+        raise ValueError(
+            "Missing required environment variable: DB_PASSWORD is not set or empty. "
+            "Please copy .env.example to .env and configure your PostgreSQL credentials."
+        )
+
     config = {
         "host": os.getenv("DB_HOST", "localhost"),
         "port": int(os.getenv("DB_PORT", "5432")),
         "name": os.getenv("DB_NAME", "ids_flows_db"),
-        "user": os.getenv("DB_USER", "postgres"),
-        "password": os.getenv("DB_PASSWORD", ""),
+        "user": user,
+        "password": password,
     }
-
-    if not config["password"]:
-        logger.warning(
-            "DB_PASSWORD is empty. Ensure your PostgreSQL configuration permits "
-            "passwordless login or update DB_PASSWORD in your .env file."
-        )
 
     return config
 

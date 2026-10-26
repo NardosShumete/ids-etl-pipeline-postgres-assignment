@@ -26,8 +26,23 @@ if ENV_FILE.is_file():
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", "5432"))
 DB_NAME = os.getenv("DB_NAME", "ids_flows_db")
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
+
+
+def validate_db_credentials() -> None:
+    """Validate required database credentials, raising an error if missing or empty."""
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    if not user:
+        raise ValueError(
+            "Missing required environment variable: DB_USER is not set or empty. "
+            "Please copy .env.example to .env and configure your PostgreSQL credentials."
+        )
+    if not password:
+        raise ValueError(
+            "Missing required environment variable: DB_PASSWORD is not set or empty. "
+            "Please copy .env.example to .env and configure your PostgreSQL credentials."
+        )
+
 
 # Processing & Ingestion Constants
 DEFAULT_CHUNK_SIZE = 200_000
@@ -36,17 +51,19 @@ FALLBACK_ENCODINGS = ["utf-8", "latin-1"]
 
 def get_db_url() -> str:
     """Construct SQLAlchemy database connection URL."""
-    return (
-        f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    )
+    validate_db_credentials()
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    return f"postgresql+psycopg2://{user}:{password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 
 def get_db_params() -> dict:
     """Return dictionary of connection parameters for raw psycopg2 connections."""
+    validate_db_credentials()
     return {
         "host": DB_HOST,
         "port": DB_PORT,
         "dbname": DB_NAME,
-        "user": DB_USER,
-        "password": DB_PASSWORD,
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASSWORD"),
     }
