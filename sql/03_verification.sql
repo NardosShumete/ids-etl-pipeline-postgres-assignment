@@ -50,6 +50,16 @@ GROUP BY a.id, a.label, a.category, a.is_malicious
 ORDER BY total_flows DESC;
 
 -- ------------------------------------------------------------------------------
+-- 3b. Attack Label Encoding & Quality Validation
+-- Verifies no leading/trailing whitespace, no replacement characters, and valid characters.
+-- ------------------------------------------------------------------------------
+SELECT 
+    COUNT(*) FILTER (WHERE label != TRIM(label)) AS labels_with_whitespace,
+    COUNT(*) FILTER (WHERE label ~ '[^A-Za-z0-9 _-]') AS labels_with_invalid_chars,
+    COUNT(*) FILTER (WHERE POSITION(chr(65533) IN label) > 0) AS labels_with_replacement_chars
+FROM attack_types;
+
+-- ------------------------------------------------------------------------------
 -- 4. Orphan Foreign Key Check (Referential Integrity Audit)
 -- Must return 0 across all checks, proving complete referential integrity.
 -- ------------------------------------------------------------------------------

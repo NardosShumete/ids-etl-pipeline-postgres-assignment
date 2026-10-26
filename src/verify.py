@@ -122,6 +122,31 @@ def run_verification() -> bool:
                     f"{r[0]:<4} {r[1]:<32} {r[2]:<16} {r[3]!s:<10} {r[4]:<14,} {r[5]}%"
                 )
 
+            # 3b. Strong Label and Character Set Validation
+            print("\n" + "=" * 80)
+            print("3b. ATTACK LABEL INTEGRITY & ENCODING QUALITY AUDIT")
+            print("=" * 80)
+            cur.execute("""
+                SELECT 
+                    COUNT(*) FILTER (WHERE label != TRIM(label)),
+                    COUNT(*) FILTER (WHERE label ~ '[^A-Za-z0-9 _-]'),
+                    COUNT(*) FILTER (WHERE POSITION(chr(65533) IN label) > 0)
+                FROM attack_types;
+            """)
+            label_checks = cur.fetchone()
+            print(f"  * Labels with leading/trailing whitespace : {label_checks[0]}")
+            print(f"  * Labels with unexpected characters (regex): {label_checks[1]}")
+            print(
+                f"  * Labels with Unicode replacement chars (\\uFFFD): {label_checks[2]}"
+            )
+            if sum(label_checks) == 0:
+                print(
+                    "  [PASS] All attack type labels are clean, valid, and properly encoded."
+                )
+            else:
+                print("  [FAIL] Label encoding defects detected!")
+                all_passed = False
+
             # 4. Orphan Foreign Key Audit
             print("\n" + "=" * 80)
             print("4. ORPHAN FOREIGN KEY & REFERENTIAL INTEGRITY AUDIT")
