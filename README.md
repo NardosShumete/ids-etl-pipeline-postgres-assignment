@@ -89,6 +89,12 @@ The dataset comprises network traffic captured across 5 consecutive business day
    ```
 4. **Git Safety Warning:** The `.gitignore` is configured to ignore all `.csv` and `.zip` files under `data/raw/` and `data/`. The dataset exceeds 1.7 GB, and GitHub strictly rejects files over 100 MB. Do not force-add raw data files.
 
+### ETL Cleaning & Deduplication Strategy
+- **Chunked Memory Bounds:** To maintain strict bounded memory consumption (~643 MB peak RAM), data is processed in chunks of 200,000 rows using a Python generator.
+- **Header Normalization & Encoding:** Column names are stripped of irregular whitespace and converted to canonical `snake_case`. Character encoding quirks in web attack labels (`\ufffd`, `\x96`) are normalized.
+- **NaN & Infinity Handling:** Zero-duration division artifacts (`np.inf`, `-np.inf`) are replaced with `np.nan`, and rows missing essential telemetry are removed.
+- **Deduplication Scope:** Telemetry records are **deduplicated within each 200,000-row chunk** (purging 211,497 duplicate rows). An exact database-wide audit shows 240,988 within-file duplicates (9.21%) and 338,655 cross-file duplicates (12.94%) remain in the warehouse because identical flow signatures crossed 200,000-row chunk boundaries or occurred on multiple days.
+
 ---
 
 ## 4. PostgreSQL Schema & Architecture Design

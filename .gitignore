@@ -69,7 +69,6 @@ htmlcov/
 .tox/
 .nox/
 
-# --- Operating System Files ---
-.DS_Store
-Thumbs.db
-desktop.ini
+# --- Scratch and Temporary Diagnostics ---
+scratch/
+

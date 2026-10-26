@@ -1,12 +1,20 @@
 # Group Assignment Report: Designing a Data Pipeline and ETL Process
 ## Intrusion Detection System (IDS) Telemetry Storage & Analytics in PostgreSQL
 
-**Course / Module:** Data Engineering & Pipeline Architecture  
-**Group Members:** [Group Member 1, Group Member 2, Group Member 3, Group Member 4]  
+**Course / Module:** [COURSE NAME] — Data Engineering & Pipeline Architecture  
+**Instructor:** Derbew Felasman  
 **Academic Institution / Organization:** Addis Ababa University / Telecommunications & Banking SOC Working Group  
 **Date:** October 26, 2026  
 **Repository Name:** `ids-etl-pipeline-postgres-assignment`  
 **GitHub URL:** `https://github.com/NardosShumete/ids-etl-pipeline-postgres-assignment.git`  
+
+### Team Members & Contributions
+| # | Member Name | Student ID | Primary Project Role | Key Architectural Contributions & Deliverables |
+|---|---|---|---|---|
+| 1 | [FULL NAME] | [ID] | Pipeline Architecture Lead | Modular ETL engine (`extract.py`, `pipeline.py`), streaming generator, and CLI orchestration |
+| 2 | [FULL NAME] | [ID] | Database & Schema Engineer | PostgreSQL 3NF schema, vertical partitioning (`flows` / `flow_statistics`), DDL constraints, and indexes |
+| 3 | [FULL NAME] | [ID] | Data Quality & Cleansing Specialist | Column normalization, encoding repairs (Latin-1/UTF-8), NaN/Inf handling, and per-chunk deduplication |
+| 4 | [FULL NAME] | [ID] | SOC Threat Hunting & QA Analyst | Analytical queries (`04_analytics.sql`), EXPLAIN ANALYZE index benchmarking, and verification test suite |
 
 ---
 
@@ -62,6 +70,8 @@ Prior to transformation, deep inspection revealed six key data anomalies:
 ## 3. Pipeline Architecture
 
 The ETL system is built with modular components separating configuration, extraction, transformation, loading, and verification:
+
+![Figure 1: End-to-End IDS ETL Pipeline Architecture](figures/architecture_diagram.png)
 
 ```mermaid
 flowchart TD
@@ -124,6 +134,8 @@ flowchart TD
 ---
 
 ## 4. Entity-Relationship (ER) Schema Design
+
+![Figure 2: PostgreSQL Entity-Relationship Schema Diagram](figures/er_diagram.png)
 
 ```mermaid
 erDiagram
@@ -246,12 +258,26 @@ erDiagram
 
 ### 5.2 Vertical Partitioning Justification
 In PostgreSQL, tables are stored in 8 KB disk buffer pages.
-- **Unpartitioned Table:** Storing all 79 columns in a single table yields an average row width $>650$ bytes, fitting only ~11 rows per 8 KB page. Routine queries reading millions of rows would require scanning ~240,000 pages (~1.9 GB).
-- **Partitioned Table:** Routine SOC queries examine only 5 to 10 operational columns (`destination_port`, `flow_duration`, packet counts, TCP flags). The partitioned `flows` table has an average row width of ~160 bytes, fitting **45+ rows per page** (a **3.7x cache density improvement**).
-- Deep statistical variances and inter-arrival distributions reside in `flow_statistics` and are joined via primary key `flow_id` only during detailed forensic drill-downs.
+- **Unpartitioned Table (Theoretical):** Storing all 79 columns in a single table yields an average row width of ~656.5 bytes ($174.4\text{ B} + 482.1\text{ B}$), fitting only **12.5 rows per 8 KB page**. Scanning the 2.61 million rows would require traversing ~209,600 buffer pages (~1.64 GB).
+- **Partitioned `flows` Table (Empirical):** Routine SOC threat-hunting queries examine only operational columns (`destination_port`, `flow_duration`, packet counts, TCP flags). In PostgreSQL, the partitioned `flows` table occupies 435 MB across 55,692 pages, with a measured average row width of **174.4 bytes**, fitting **47.0 rows per 8 KB page**.
+- **Cache Density Improvement:** Vertical partitioning achieves an empirical **3.76x cache density improvement** ($47.0 / 12.5 = 3.76\times$), keeping the working set for hot connection queries within RAM.
+- Deep statistical variances and inter-arrival distributions reside in `flow_statistics` (1,203 MB, 153,944 pages, 482.1 B/row, 17.0 rows/page) and are joined via primary key `flow_id` only during detailed forensic drill-downs.
 
 ### 5.3 Post-Load Indexing Strategy
 Maintaining B-Tree indexes synchronously during high-volume row inserts causes heavy B-Tree page splits and Write-Ahead Log (WAL) overhead. Isolating indexes in `sql/02_indexes.sql` allows the initial load to execute as a high-speed sequential append via `COPY`. Indexes are created after ingestion, sorting in-memory and generating 100% compact, zero-fragmentation B-Tree structures.
+
+### 5.4 Empirical Performance Verification Summary (Measured vs. Claimed)
+To maintain academic rigor, all pipeline claims were measured directly against the live database and execution runtime:
+
+| Architectural Metric | Claimed / Estimated | Verification Method | Measured Value | Operational Rationale |
+|---|---|---|---|---|
+| **Python Process RAM** | < 450 MB | `tracemalloc` peak during 200,000-row chunk | **643.6 MB** | Accounts for dual DataFrame generation (`flows_df` + `flow_stats_df`) |
+| **`flows` Row Width** | ~160 B | `pg_class` relation size / row count | **174.4 B** | 25 columns: bigints, doubles, smallint TCP flags |
+| **`flow_statistics` Row Width** | ~490 B | `pg_class` relation size / row count | **482.1 B** | 57 columns: packet length distributions, inter-arrival times |
+| **Buffer Cache Density** | 3.7x | `flows` rows/page vs combined unpartitioned | **3.76x** | **47.0 rows/page** vs **12.5 rows/page** |
+| **End-to-End Full Ingestion** | ~20 min | `logs/etl.log` timestamp delta (2.83M rows) | **19m 35s** | High throughput: 2,226 rows/sec via `copy_expert` |
+| **Query 5 (Port 80 Filter)** | 264 ms | PostgreSQL `EXPLAIN (ANALYZE, BUFFERS)` | **474.5 ms warm** / 1,365.8 ms cold | Bitmap Index Scan on `idx_flows_attack_port` |
+| **Query 6 (DoS Hulk Category)** | 692 ms | PostgreSQL `EXPLAIN (ANALYZE, BUFFERS)` | **286.9 ms** | Bitmap Index Scan on `idx_flows_attack_type_id` |
 
 ---
 
@@ -335,9 +361,35 @@ ID   Label                            Category         Malicious  Flow Count    
   * Net Discrepancy (Dropped Rows)   : 214,477
     - Dropped Duplicates             : 211,497
     - Dropped Missing (NaN)          : 2,867
-    - Dropped Invalid/Negative       : 113
 ================================================================================
 ```
+
+### 6.1 Per-Label Reconciliation & Discrepancy Breakdown
+An empirical reconciliation between the raw CSV source files and PostgreSQL shows the exact distribution of dropped rows across threat classes:
+
+| Threat Classification Label | Raw CSV Count | DB Loaded Count | Net Discrepancy (Dropped) | Primary Cause of Discrepancy |
+|---|---|---|---|---|
+| **BENIGN** | 2,273,097 | 2,170,865 | 102,232 | Duplicate operational/ping flows; missing NaN metrics |
+| **DoS Hulk** | 231,073 | 173,559 | 57,514 | High-volume repetitive HTTP GET flood packet duplicates |
+| **PortScan** | 158,930 | 109,418 | 49,512 | Rapid SYN probe packets to adjacent ports with identical length |
+| **SSH-Patator** | 5,897 | 3,442 | 2,455 | Repetitive automated SSH dictionary credential attempts |
+| **FTP-Patator** | 7,938 | 5,931 | 2,007 | Repeated automated FTP login retry flows |
+| **DoS slowloris** | 5,796 | 5,385 | 411 | Keep-alive probe duplicates |
+| **DoS Slowhttptest** | 5,499 | 5,228 | 271 | Slow-read packet duplicates |
+| **Web Attack - Brute Force** | 1,507 | 1,470 | 37 | Repetitive POST credential attempts |
+| **Bot** | 1,966 | 1,948 | 18 | Repeated heartbeat beaconing frames |
+| **DDoS** | 128,027 | 128,014 | 13 | High-rate volumetric flood packets |
+| **DoS GoldenEye** | 10,293 | 10,286 | 7 | Repetitive HTTP keep-alive requests |
+| **Web Attack - XSS** | 652 | 652 | 0 | 100% preserved (zero missing, zero duplicates) |
+| **Infiltration** | 36 | 36 | 0 | 100% preserved (critical low-volume threat) |
+| **Web Attack - Sql Injection**| 21 | 21 | 0 | 100% preserved (critical low-volume threat) |
+| **Heartbleed** | 11 | 11 | 0 | 100% preserved (critical low-volume threat) |
+| **TOTAL** | **2,830,743** | **2,616,266** | **214,477** | Exactly $2,830,743 - 214,477 = 2,616,266$ |
+
+### 6.2 Cross-Chunk Deduplication Analysis & Memory Trade-off
+- **Architectural Scope:** In accordance with strict memory bounds for large datasets, deduplication in `transform_chunk()` is executed **within each 200,000-row chunk**. This bounded Python RAM to **643.6 MB** and removed **211,497 intra-chunk duplicates**.
+- **Empirical Measurement:** An exact database-wide verification query across all 15 connection attributes was executed against PostgreSQL. It revealed that **240,988 duplicate rows within the same source files (9.21%)** and **338,655 duplicate rows globally across all files (12.94%)** remain in the database because identical flow signatures crossed 200,000-row chunk boundaries or occurred on multiple days.
+- **Trade-off Analysis:** Purging cross-chunk duplicates requires either maintaining an in-memory Bloom filter/hash set of seen flow fingerprints across all 2.83M rows or executing post-load SQL deduplication in PostgreSQL. In this baseline pipeline, per-chunk deduplication was prioritized to preserve bounded memory.
 
 ---
 
