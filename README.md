@@ -28,7 +28,7 @@ This repository provides the core data architecture, normalized PostgreSQL schem
 ## 2. Project Directory Structure
 
 ```text
-ids-etl-pipeline-postgres/
+ids-etl-pipeline-postgres-assignment/
 │
 ├── data/
 │   └── raw/               # Destination for extracted CIC-IDS-2017 CSV files (git-ignored)
@@ -125,8 +125,9 @@ Detailed rationale, ER diagrams, and normalization proofs are documented in:
 Clone the repository and create an isolated virtual environment:
 
 ```bash
-# Navigate to the project root
-cd ids-etl-pipeline-postgres
+# Clone the repository
+git clone https://github.com/NardosShumete/ids-etl-pipeline-postgres-assignment.git
+cd ids-etl-pipeline-postgres-assignment
 
 # Create virtual environment (.venv)
 python -m venv .venv

@@ -5,8 +5,8 @@
 **Group Members:** [Group Member 1, Group Member 2, Group Member 3, Group Member 4]  
 **Academic Institution / Organization:** Addis Ababa University / Telecommunications & Banking SOC Working Group  
 **Date:** October 26, 2026  
-**Repository Name:** `ids-etl-pipeline-postgres`  
-**GitHub URL:** `https://github.com/NardosShumete/CIC-IDS2017_cybersecurity_project.git`  
+**Repository Name:** `ids-etl-pipeline-postgres-assignment`  
+**GitHub URL:** `https://github.com/NardosShumete/ids-etl-pipeline-postgres-assignment.git`  
 
 ---
 
@@ -399,8 +399,8 @@ Executing `sql/04_analytics.sql` against the full warehouse produces four primar
 
 ### Step 1: Environment Setup
 ```bash
-git clone https://github.com/NardosShumete/CIC-IDS2017_cybersecurity_project.git ids-etl-pipeline-postgres
-cd ids-etl-pipeline-postgres
+git clone https://github.com/NardosShumete/ids-etl-pipeline-postgres-assignment.git
+cd ids-etl-pipeline-postgres-assignment
 python -m venv .venv
 .venv\Scripts\Activate.ps1   # Windows PowerShell
 pip install -r requirements.txt
