@@ -233,7 +233,6 @@ Key analytical queries included:
 
 ### Step 8: View Academic & Engineering Report
 Detailed architecture diagrams, normalization analysis, and operational findings are documented in:
-- Markdown Report: [docs/report.md](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/report.md)
-- Word Document: [docs/report.docx](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/report.docx)
-- Schema Notes: [docs/schema_notes.md](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/schema_notes.md)
-- ER Diagram: [docs/er_diagram.mmd](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/er_diagram.mmd)
+- Formatted Word Document: [docs/ETL_Pipeline_Report_Formatted.docx](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/ETL_Pipeline_Report_Formatted.docx)
+- Formatted PDF Document: [docs/ETL_Pipeline_Report_Formatted.pdf](file:///c:/Users/hp/Desktop/Portfolio/CIC-IDS2017/docs/ETL_Pipeline_Report_Formatted.pdf)
+

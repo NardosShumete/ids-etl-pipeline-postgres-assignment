@@ -1,6 +1,7 @@
 """Automated Technical Report Generator for IDS ETL Pipeline Project.
 
-Generates docs/ETL_Pipeline_Report.docx (and exports to PDF) with publication-grade formatting:
+Generates docs/ETL_Pipeline_Report_Formatted.docx (and exports to PDF) with publication-grade formatting:
+
 - A4 dimensions, 1.0-inch margins, Calibri 11pt typography, 1.15 line spacing.
 - Professional executive cover page with team and academic placeholders.
 - Word dynamic Table of Contents, List of Figures, and List of Tables.
@@ -407,11 +408,12 @@ def setup_headers_footers(doc) -> None:
 
 
 def generate_etl_report(
-    output_docx: Path = Path("docs/ETL_Pipeline_Report.docx"),
+    output_docx: Path = Path("docs/ETL_Pipeline_Report_Formatted.docx"),
 ) -> None:
     """Build the complete, publication-grade academic and technical ETL report."""
     print(f"Generating comprehensive technical report: {output_docx}...")
     figures_dir = Path("docs/figures")
+
 
     doc = docx.Document()
     setup_headers_footers(doc)
@@ -2363,9 +2365,10 @@ Execution Time: 702.537 ms  |  Total Buffer Pages Traversed: 55,692 pages (435.1
 │   ├── archive.zip           <- Raw Kaggle CIC-IDS-2017 compressed dataset (229 MB)
 │   └── raw/                  <- Extracted CSV files (843.66 MB total across 8 files)
 ├── docs/
-│   ├── ETL_Pipeline_Report.docx <- Comprehensive formal Word technical report
-│   ├── ETL_Pipeline_Report.pdf  <- High-fidelity PDF export of the technical report
+│   ├── ETL_Pipeline_Report_Formatted.docx <- Formatted Word technical report
+│   ├── ETL_Pipeline_Report_Formatted.pdf  <- Formatted PDF export of the technical report
 │   ├── build_report.py       <- Automated report generator script
+
 │   └── figures/              <- Publication-grade figures (300 DPI PNG diagrams and charts)
 │       ├── architecture_diagram.png
 │       ├── er_diagram.png
