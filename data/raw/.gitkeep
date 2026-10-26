@@ -1,0 +1,2 @@
+# Placeholder to preserve data/raw directory in version control.
+# Raw CSV dataset files (~1.7 GB) extracted from archive.zip are git-ignored.

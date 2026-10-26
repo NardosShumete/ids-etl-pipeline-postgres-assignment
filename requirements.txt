@@ -1,0 +1,15 @@
+# Core Data Manipulation and ETL
+pandas>=2.1.0
+
+# Database Engine and PostgreSQL Driver
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+
+# Environment and Configuration Management
+python-dotenv>=1.0.0
+
+# Progress Tracking for Bulk Processing
+tqdm>=4.66.0
+
+# Automated Testing Framework
+pytest>=8.0.0

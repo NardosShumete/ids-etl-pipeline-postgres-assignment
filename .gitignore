@@ -1,0 +1,74 @@
+# ==============================================================================
+# Git Ignore Configuration for IDS ETL Pipeline (CIC-IDS-2017)
+# ==============================================================================
+
+# --- Dataset and Large Files (~1.7 GB total; GitHub limit is 100 MB) ---
+data/raw/*
+!data/raw/.gitkeep
+data/*.zip
+archive.zip
+*.csv
+*.zip
+*.gz
+*.tar.gz
+*.pcap
+
+# --- Environment and Secrets ---
+.env
+*.env
+!.env.example
+
+# --- Application Logs ---
+logs/*
+!logs/.gitkeep
+*.log
+
+# --- Python Build and Cache ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# --- IDEs and Text Editors ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# --- Testing and Coverage ---
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# --- Operating System Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
