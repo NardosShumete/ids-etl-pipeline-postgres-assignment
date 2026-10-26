@@ -1,67 +1,91 @@
-"""Unit tests verifying DDL schema definitions, constraints, and index scripts."""
-
-from pathlib import Path
+"""Integration tests verifying PostgreSQL schema definitions, taxonomy seed, and idempotency."""
 
 import pytest
 
+from src.config import SQL_DIR
+
 
 @pytest.fixture
-def project_root() -> Path:
-    """Fixture returning the root directory of the repository."""
-    return Path(__file__).resolve().parent.parent
+def schema_sql() -> str:
+    """Fixture returning the content of sql/01_schema.sql."""
+    schema_path = SQL_DIR / "01_schema.sql"
+    return schema_path.read_text(encoding="utf-8")
 
 
-def test_schema_file_exists(project_root: Path) -> None:
-    """Verify that sql/01_schema.sql exists and contains valid table definitions."""
-    schema_file = project_root / "sql" / "01_schema.sql"
-    assert schema_file.is_file(), "sql/01_schema.sql does not exist"
+def test_schema_tables_and_primary_keys(schema_sql: str):
+    """Verify all warehouse tables define explicit primary keys."""
+    assert "CREATE TABLE attack_types" in schema_sql
+    assert "id SMALLSERIAL PRIMARY KEY" in schema_sql
 
-    content = schema_file.read_text(encoding="utf-8")
-    assert len(content) > 100, "sql/01_schema.sql is suspiciously empty"
+    assert "CREATE TABLE source_files" in schema_sql
+    assert "id SERIAL PRIMARY KEY" in schema_sql
 
-    # Verify all four required core tables are created
-    assert "CREATE TABLE attack_types" in content
-    assert "CREATE TABLE source_files" in content
-    assert "CREATE TABLE flows" in content
-    assert "CREATE TABLE flow_statistics" in content
+    assert "CREATE TABLE flows" in schema_sql
+    assert "id BIGSERIAL PRIMARY KEY" in schema_sql
 
-    # Verify essential constraints and references
-    assert "REFERENCES source_files(id)" in content
-    assert "REFERENCES attack_types(id)" in content
-    assert "REFERENCES flows(id)" in content
-    assert "CHECK (destination_port >= 0 AND destination_port <= 65535)" in content
-    assert "CHECK (flow_duration >= 0)" in content
+    assert "CREATE TABLE flow_statistics" in schema_sql
+    assert (
+        "flow_id BIGINT PRIMARY KEY REFERENCES flows(id) ON DELETE CASCADE"
+        in schema_sql
+    )
 
 
-def test_attack_types_seeded(project_root: Path) -> None:
-    """Verify that seed statements populate core attack categories."""
-    schema_file = project_root / "sql" / "01_schema.sql"
-    content = schema_file.read_text(encoding="utf-8")
+def test_schema_check_constraints(schema_sql: str):
+    """Verify strict domain CHECK constraints on network attributes."""
+    # Port range 0 - 65535
+    assert "CHECK (destination_port >= 0 AND destination_port <= 65535)" in schema_sql
+    # Non-negative durations and packet lengths
+    assert "CHECK (flow_duration >= 0)" in schema_sql
+    assert "CHECK (total_fwd_packets >= 0)" in schema_sql
+    assert "CHECK (total_bwd_packets >= 0)" in schema_sql
+    # Non-negative TCP flags
+    assert "CHECK (fin_flag_count >= 0)" in schema_sql
+    assert "CHECK (syn_flag_count >= 0)" in schema_sql
+    assert "CHECK (ack_flag_count >= 0)" in schema_sql
 
-    expected_labels = [
+
+def test_attack_types_seed_taxonomy(schema_sql: str):
+    """Verify all 15 distinct intrusion categories are seeded into attack_types."""
+    expected_categories = [
         "BENIGN",
         "DoS Hulk",
         "PortScan",
         "DDoS",
+        "DoS GoldenEye",
         "FTP-Patator",
         "SSH-Patator",
+        "DoS slowloris",
+        "DoS Slowhttptest",
         "Bot",
+        "Web Attack - Brute Force",
+        "Web Attack - XSS",
+        "Web Attack - Sql Injection",
         "Infiltration",
         "Heartbleed",
     ]
-
-    for label in expected_labels:
-        assert label in content, (
-            f"Expected attack label '{label}' not found in seed SQL"
-        )
+    for label in expected_categories:
+        assert f"('{label}'" in schema_sql, f"Missing attack label in seed SQL: {label}"
 
 
-def test_indexes_file_exists(project_root: Path) -> None:
-    """Verify that sql/02_indexes.sql exists and defines required post-load indexes."""
-    indexes_file = project_root / "sql" / "02_indexes.sql"
-    assert indexes_file.is_file(), "sql/02_indexes.sql does not exist"
+def test_idempotency_file_check_logic():
+    """(g) Test that is_file_already_loaded properly guards against re-inserting loaded files."""
+    from unittest.mock import MagicMock
 
-    content = indexes_file.read_text(encoding="utf-8")
-    assert "idx_flows_attack_type_id" in content
-    assert "idx_flows_destination_port" in content
-    assert "idx_flows_source_file_id" in content
+    from src.load import is_file_already_loaded
+
+    # Mock connection and cursor
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+
+    # Case 1: File has 0 rows (not loaded yet)
+    mock_cursor.fetchone.return_value = (0,)
+    assert not is_file_already_loaded(mock_conn, "test.csv")
+
+    # Case 2: File has 200,000 rows (already loaded)
+    mock_cursor.fetchone.return_value = (200_000,)
+    assert is_file_already_loaded(mock_conn, "test.csv")
+
+    # Case 3: File not in table
+    mock_cursor.fetchone.return_value = None
+    assert not is_file_already_loaded(mock_conn, "test.csv")

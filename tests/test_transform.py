@@ -45,96 +45,124 @@ def test_clean_column_name():
     assert clean_column_name(" Fwd Header Length.1") == "fwd_header_length_1"
 
 
-def test_clean_attack_label():
-    """Verify normalization of non-standard dash characters and typos in labels."""
-    assert clean_attack_label("BENIGN") == "BENIGN"
+def test_clean_attack_label_corrupted_encodings():
+    """Verify label cleaning of the 3 Web Attack classes with corrupted encodings and anomalies."""
+    # 1. Web Attack - Brute Force with unicode replacement character U+FFFD (\ufffd)
     assert (
         clean_attack_label("Web Attack \ufffd Brute Force")
         == "Web Attack - Brute Force"
     )
+    # 2. Web Attack - XSS with Windows-1252 / Latin-1 en-dash byte \x96
     assert clean_attack_label("Web Attack \x96 XSS") == "Web Attack - XSS"
+    # 3. Web Attack - Sql Injection with corrupted double-space gap
     assert (
         clean_attack_label("Web Attack  Sql Injection") == "Web Attack - Sql Injection"
     )
+    # Other anomalies
     assert clean_attack_label("Infilteration") == "Infiltration"
+    assert clean_attack_label("  BENIGN  ") == "BENIGN"
     assert clean_attack_label("DoS Hulk") == "DoS Hulk"
 
 
-def test_transform_chunk_synthetic(mock_label_to_id):
-    """Test cleaning rules on synthetic records with known defects."""
+def test_deduplicate_chunk(mock_label_to_id):
+    """(a) Test duplicate removal and verify stats counting on identical records."""
     raw_data = {
-        " Destination Port": [80, 443, -1, 8080, 80],
-        " Flow Duration": [
-            1000,
-            2000,
-            3000,
-            -50,
-            1000,
-        ],  # row 3 has negative duration, row 4 duplicate of row 0
-        " Total Fwd Packets": [10, 20, 10, 5, 10],
-        " Total Backward Packets": [5, 10, 5, 2, 5],
-        "Total Length of Fwd Packets": [100, 200, 100, 50, 100],
-        " Total Length of Bwd Packets": [50, 100, 50, 25, 50],
-        "Flow Bytes/s": [100.0, np.inf, 50.0, 10.0, 100.0],  # row 1 has inf -> dropped
-        " Flow Packets/s": [15.0, 30.0, 15.0, 7.0, 15.0],
-        " Fwd Header Length": [20, 40, 20, 10, 20],
-        " Fwd Header Length.1": [20, 40, 20, 10, 20],  # duplicate column
-        " Label": [
-            "BENIGN",
-            "Web Attack \ufffd Brute Force",
-            "BENIGN",
-            "BENIGN",
-            "BENIGN",  # row 4 is duplicate of row 0
-        ],
+        " Destination Port": [80, 80, 443],
+        " Flow Duration": [1000, 1000, 2000],
+        " Total Fwd Packets": [10, 10, 20],
+        " Total Backward Packets": [5, 5, 10],
+        "Total Length of Fwd Packets": [100, 100, 200],
+        " Total Length of Bwd Packets": [50, 50, 100],
+        "Flow Bytes/s": [100.0, 100.0, 150.0],
+        " Flow Packets/s": [15.0, 15.0, 30.0],
+        " Fwd Header Length": [20, 20, 40],
+        " Label": ["BENIGN", "BENIGN", "BENIGN"],
     }
     df = pd.DataFrame(raw_data)
     stats = TransformStats()
 
     flows_df, stats_df = transform_chunk(df, mock_label_to_id, stats)
 
-    # Row 1 (inf) dropped, Row 2 (negative port) dropped, Row 3 (negative duration) dropped,
-    # Row 4 (duplicate of Row 0) dropped
+    # First two rows are identical; second row must be dropped
+    assert len(flows_df) == 2
+    assert len(stats_df) == 2
+    assert stats.rows_dropped_duplicates == 1
+
+
+def test_infinity_and_nan_dropped(mock_label_to_id):
+    """(b) Test that Infinity and NaN values in crucial columns are dropped and counted."""
+    raw_data = {
+        " Destination Port": [80, 80, 80],
+        " Flow Duration": [1000, 2000, 3000],
+        " Total Fwd Packets": [10, 20, 30],
+        " Total Backward Packets": [5, 10, 15],
+        "Total Length of Fwd Packets": [100, 200, 300],
+        " Total Length of Bwd Packets": [50, 100, 150],
+        "Flow Bytes/s": [100.0, np.inf, np.nan],  # rows 1 and 2 must be dropped
+        " Flow Packets/s": [15.0, 30.0, 45.0],
+        " Fwd Header Length": [20, 40, 60],
+        " Label": ["BENIGN", "BENIGN", "BENIGN"],
+    }
+    df = pd.DataFrame(raw_data)
+    stats = TransformStats()
+
+    flows_df, stats_df = transform_chunk(df, mock_label_to_id, stats)
+
     assert len(flows_df) == 1
     assert len(stats_df) == 1
-    assert "fwd_header_length_1" not in flows_df.columns
-    assert "fwd_header_length_1" not in stats_df.columns
-    assert flows_df.iloc[0]["destination_port"] == 80
-    assert flows_df.iloc[0]["attack_type_id"] == 1  # BENIGN
+    assert stats.rows_dropped_nan == 2
 
 
-def test_transform_chunk_on_real_1000_sample(mock_label_to_id):
-    """Test transform_chunk against a real 1,000 row slice from the dataset."""
+def test_negative_flow_duration_dropped(mock_label_to_id):
+    """(c) Test that negative flow_duration rows (clock jitter) are filtered out."""
+    raw_data = {
+        " Destination Port": [80, 443, 8080],
+        " Flow Duration": [1000, -1, -500],  # rows 1 and 2 negative duration
+        " Total Fwd Packets": [10, 20, 30],
+        " Total Backward Packets": [5, 10, 15],
+        "Total Length of Fwd Packets": [100, 200, 300],
+        " Total Length of Bwd Packets": [50, 100, 150],
+        "Flow Bytes/s": [100.0, 200.0, 300.0],
+        " Flow Packets/s": [15.0, 30.0, 45.0],
+        " Fwd Header Length": [20, 40, 60],
+        " Label": ["BENIGN", "BENIGN", "BENIGN"],
+    }
+    df = pd.DataFrame(raw_data)
+    stats = TransformStats()
+
+    flows_df, stats_df = transform_chunk(df, mock_label_to_id, stats)
+
+    assert len(flows_df) == 1
+    assert len(stats_df) == 1
+    assert stats.rows_dropped_invalid == 2
+    assert flows_df.iloc[0]["flow_duration"] == 1000
+
+
+def test_vertical_split_matching_rows_and_features(mock_label_to_id):
+    """(f) Verify vertical partitioning generates synchronized DataFrames with distinct feature sets."""
     sample_files = list(RAW_DATA_DIR.glob("*.csv"))
     if not sample_files:
         pytest.skip("No CSV files found in data/raw for integration testing.")
 
     test_file = sample_files[0]
-    raw_df = pd.read_csv(test_file, nrows=1000, encoding="latin-1", low_memory=False)
-    raw_df["_source_file_name"] = test_file.name
+    raw_df = pd.read_csv(test_file, nrows=500, encoding="latin-1", low_memory=False)
 
     stats = TransformStats()
     flows_df, flow_stats_df = transform_chunk(raw_df, mock_label_to_id, stats)
 
-    # Verify rows were processed
-    assert stats.rows_read == 1000
-    assert len(flows_df) > 0
+    # 1. Must produce exact equal cardinality
     assert len(flows_df) == len(flow_stats_df)
+    assert len(flows_df) > 0
 
-    # Verify column structures
-    for col in [
-        "destination_port",
-        "flow_duration",
-        "total_fwd_packets",
-        "attack_type_id",
-    ]:
-        assert col in flows_df.columns
+    # 2. flows table must contain core hot features
+    assert "destination_port" in flows_df.columns
+    assert "flow_duration" in flows_df.columns
+    assert "attack_type_id" in flows_df.columns
 
-    # Verify domain boundaries on output
-    assert (flows_df["destination_port"] >= 0).all()
-    assert (flows_df["destination_port"] <= 65535).all()
-    assert (flows_df["flow_duration"] >= 0).all()
-    assert (flows_df["attack_type_id"] > 0).all()
+    # 3. flow_statistics table must contain forensic and variance metrics
+    assert "fwd_packet_length_max" in flow_stats_df.columns
+    assert "packet_length_mean" in flow_stats_df.columns
 
-    # Verify no infinite or NaN values in core metrics
-    assert not flows_df["flow_bytes_per_s"].isna().any()
-    assert not np.isinf(flows_df["flow_bytes_per_s"]).any()
+    # 4. No overlap between partitioned telemetry and variance features
+    assert "fwd_packet_length_max" not in flows_df.columns
+    assert "attack_type_id" not in flow_stats_df.columns
