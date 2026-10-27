@@ -487,28 +487,46 @@ def generate_etl_report(
     ]
     team_rows = [
         [
-            "[TO BE FILLED: Student 1]",
-            "[TO BE FILLED: ID 1]",
-            "Pipeline Architecture & Ingestion Lead",
-            "Chunked extraction engine, streaming generators, and pipeline orchestration",
+            "Nahom Teshome",
+            "DBU1501387",
+            "Pipeline Architecture & Streaming Ingestion Lead",
+            "Designed streaming generator architecture, chunksize optimization, and end-to-end pipeline CLI orchestration.",
         ],
         [
-            "[TO BE FILLED: Student 2]",
-            "[TO BE FILLED: ID 2]",
+            "Awoke Derssie",
+            "DBU1501011",
             "Relational Database Modeling Specialist",
-            "PostgreSQL DDL, 1:1 vertical partitioning, and referential constraints",
+            "Authored sql/01_schema.sql, engineered 1:1 vertical table partitioning, primary/foreign key constraints, and PostgreSQL data types.",
         ],
         [
-            "[TO BE FILLED: Student 3]",
-            "[TO BE FILLED: ID 3]",
-            "Data Cleansing & Quality Engineer",
-            "Encoding remediation, regex sanitation, and domain rule filtering",
+            "Mulegeta Ababi",
+            "DBU1501384",
+            "Data Cleansing & Quality Hardening Engineer",
+            "Developed src/transform.py, regex Web Attack encoding sanitization, infinite/NaN filtering, and negative duration purging.",
         ],
         [
-            "[TO BE FILLED: Student 4]",
-            "[TO BE FILLED: ID 4]",
+            "Lake Awraris",
+            "DBU1501314",
+            "Automated Testing & Integrity Verification Specialist",
+            "Implemented pytest test suites, schema integrity assertions, and src/verify.py automated database audit runner.",
+        ],
+        [
+            "Nahu Gedfew",
+            "DBU1501714",
+            "Database Administration & Storage Infrastructure Lead",
+            "Configured PostgreSQL server tuning, environment credential management, and transactional COPY protocol streaming.",
+        ],
+        [
+            "Ephrem Adebabay",
+            "DBU1501564",
             "Analytical Query & Indexing Specialist",
-            "Post-load indexing, query optimization, and EXPLAIN ANALYZE benchmarks",
+            "Authored sql/02_indexes.sql, sql/04_analytics.sql, post-load indexing benchmarks, and EXPLAIN ANALYZE query optimization.",
+        ],
+        [
+            "Nardos Shumete",
+            "DBU1501396",
+            "Technical Writing & Project Documentation Lead",
+            "Synthesized comprehensive technical report, architecture diagrams, ER diagrams, and Git repository version control.",
         ],
     ]
     add_styled_table(
@@ -2260,28 +2278,46 @@ Execution Time: 702.537 ms  |  Total Buffer Pages Traversed: 55,692 pages (435.1
     ]
     t15_rows = [
         [
-            "[TO BE FILLED: Student 1]",
-            "[TO BE FILLED: ID 1]",
+            "Nahom Teshome",
+            "DBU1501387",
             "Pipeline Architecture & Streaming Ingestion Lead",
             "Designed src/extract.py, streaming generator architecture, chunksize optimization, and end-to-end pipeline CLI orchestration.",
         ],
         [
-            "[TO BE FILLED: Student 2]",
-            "[TO BE FILLED: ID 2]",
+            "Awoke Derssie",
+            "DBU1501011",
             "Relational Database Modeling Specialist",
             "Authored sql/01_schema.sql, engineered 1:1 vertical table partitioning, primary/foreign key constraints, and PostgreSQL data types.",
         ],
         [
-            "[TO BE FILLED: Student 3]",
-            "[TO BE FILLED: ID 3]",
-            "Data Quality & Cleansing Engineer",
+            "Mulegeta Ababi",
+            "DBU1501384",
+            "Data Cleansing & Quality Hardening Engineer",
             "Developed src/transform.py, regex Web Attack encoding sanitization, infinite/NaN filtering, negative duration purging, and unit tests.",
         ],
         [
-            "[TO BE FILLED: Student 4]",
-            "[TO BE FILLED: ID 4]",
-            "Analytical Query & Optimization Specialist",
+            "Lake Awraris",
+            "DBU1501314",
+            "Automated Testing & Integrity Verification Specialist",
+            "Implemented pytest test suites, schema integrity assertions, and src/verify.py automated database audit runner.",
+        ],
+        [
+            "Nahu Gedfew",
+            "DBU1501714",
+            "Database Administration & Storage Infrastructure Lead",
+            "Configured PostgreSQL server tuning, environment credential management, and transactional COPY protocol streaming.",
+        ],
+        [
+            "Ephrem Adebabay",
+            "DBU1501564",
+            "Analytical Query & Indexing Specialist",
             "Authored sql/02_indexes.sql, sql/04_analytics.sql, post-load indexing benchmarks, and EXPLAIN ANALYZE query optimization.",
+        ],
+        [
+            "Nardos Shumete",
+            "DBU1501396",
+            "Technical Writing & Project Documentation Lead",
+            "Synthesized comprehensive technical report, architecture diagrams, ER diagrams, and Git repository version control.",
         ],
     ]
     add_styled_table(
