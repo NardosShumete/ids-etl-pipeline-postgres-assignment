@@ -61,7 +61,7 @@ def run_verification() -> bool:
                 )
             else:
                 print(
-                    f"  [WARN] Ingested rows ({total_flows:,}) is under 2,000,000 threshold."
+                    f"  [FAIL] Ingested rows ({total_flows:,}) is under 2,000,000 threshold."
                 )
                 all_passed = False
 

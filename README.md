@@ -11,9 +11,9 @@ An enterprise-grade, high-throughput ETL data pipeline and relational data wareh
 ---
 
 * **Institution:** Debre Berhan University, College of Computing, Department of Information Systems
-* **Course:** [TO BE FILLED: Course Title and Code]
+* **Course:** Data Engineering and ETL Pipeline
 * **Course Instructor:** Derbew Felasman
-* **Group Name:** [TO BE FILLED: Group Name]
+* **Group Name:** IDS ETL Pipeline Team
 * **Group Members:**
   1. Nahom Teshome (DBU1501387)
   2. Awoke Derssie (DBU1501011)
@@ -492,6 +492,29 @@ python -m src.pipeline
 * Clean re-run from scratch: `python -m src.pipeline --truncate`
 * Test run with record limit: `python -m src.pipeline --limit 1000`
 * Custom chunk size: `python -m src.pipeline --chunk-size 100000`
+
+### Step 9: Record a Reproducible Benchmark
+
+Use the benchmark helper to record the exact input options, elapsed time,
+throughput, rows loaded, dropped rows, and peak resident memory:
+
+```bash
+# Fast local benchmark without rebuilding indexes
+python scripts/benchmark.py --limit 100000 --truncate --skip-indexes
+
+# Full benchmark with post-load indexes
+python scripts/benchmark.py --truncate
+```
+
+The command prints JSON so results can be saved without manual transcription:
+
+```bash
+python scripts/benchmark.py --limit 100000 --truncate --skip-indexes > benchmark.json
+```
+
+Do not present benchmark values as universal guarantees. Include the generated
+JSON, database version, hardware, chunk size, and command-line options in the
+final report so the measurements are auditable.
 
 ---
 

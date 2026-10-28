@@ -454,7 +454,7 @@ def generate_etl_report(
     p_meta.paragraph_format.space_after = Pt(2)
     p_meta.add_run("Course: ").bold = True
     r_c = p_meta.add_run(
-        "[TO BE FILLED: Course Name / Code — e.g., CSE 412: Data Engineering & Pipeline Architecture]"
+        "Data Engineering and ETL Pipeline"
     )
     r_c.font.bold = True
     r_c.font.color.rgb = RGBColor(0x85, 0x4D, 0x0E)
@@ -468,7 +468,7 @@ def generate_etl_report(
     p_grp.paragraph_format.space_after = Pt(2)
     p_grp.add_run("Group Name: ").bold = True
     r_g = p_grp.add_run(
-        "[TO BE FILLED: Group Name / Number — e.g., Group 4 / Cybersecurity & Data Systems]"
+        "IDS ETL Pipeline Team"
     )
     r_g.font.bold = True
     r_g.font.color.rgb = RGBColor(0x85, 0x4D, 0x0E)

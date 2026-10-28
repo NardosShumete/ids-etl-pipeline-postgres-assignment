@@ -138,6 +138,24 @@ def test_negative_flow_duration_dropped(mock_label_to_id):
     assert flows_df.iloc[0]["flow_duration"] == 1000
 
 
+def test_unknown_attack_label_fails_closed(mock_label_to_id):
+    """Unknown taxonomy values must stop ingestion instead of becoming BENIGN."""
+    raw_data = {
+        " Destination Port": [80],
+        " Flow Duration": [1000],
+        " Total Fwd Packets": [10],
+        " Total Backward Packets": [5],
+        "Total Length of Fwd Packets": [100],
+        " Total Length of Bwd Packets": [50],
+        "Flow Bytes/s": [100.0],
+        " Flow Packets/s": [15.0],
+        " Label": ["New Unknown Attack"],
+    }
+
+    with pytest.raises(ValueError, match="Unmapped attack labels"):
+        transform_chunk(pd.DataFrame(raw_data), mock_label_to_id)
+
+
 def test_vertical_split_matching_rows_and_features(mock_label_to_id):
     """(f) Verify vertical partitioning generates synchronized DataFrames with distinct feature sets."""
     sample_files = list(RAW_DATA_DIR.glob("*.csv"))

@@ -243,13 +243,20 @@ def transform_chunk(
     if "label" in df.columns:
         df["cleaned_label"] = df["label"].astype(str).apply(clean_attack_label)
         df["attack_type_id"] = df["cleaned_label"].map(label_to_id)
-        # Default unmapped labels to BENIGN (id 1)
         if df["attack_type_id"].isna().any():
-            unmapped = df[df["attack_type_id"].isna()]["cleaned_label"].unique()
-            logger.warning("Unmapped labels found: %s. Defaulting to BENIGN.", unmapped)
-            df["attack_type_id"] = df["attack_type_id"].fillna(1).astype("int16")
-        else:
-            df["attack_type_id"] = df["attack_type_id"].astype("int16")
+            unmapped = sorted(
+                df.loc[df["attack_type_id"].isna(), "cleaned_label"].unique()
+            )
+            logger.error(
+                "Unmapped attack labels found: %s. "
+                "Update attack_types before loading the data.",
+                unmapped,
+            )
+            raise ValueError(
+                "Unmapped attack labels found: "
+                + ", ".join(repr(label) for label in unmapped)
+            )
+        df["attack_type_id"] = df["attack_type_id"].astype("int16")
 
     # 7. Validate non-negative domain rules
     # Drop rows where ports or durations or packet totals are negative
